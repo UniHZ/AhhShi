@@ -49,6 +49,7 @@ if getgenv().UniSc_Persistent then
 end
 getgenv().UniSc_Persistent = true
 getgenv().UniSc_CustomTargets = getgenv().UniSc_CustomTargets or {}
+getgenv().UniSc_CustomPrior = getgenv().UniSc_CustomPrior or {}
 
 -- ==========================================
 -- KONFIGURASI ARRAY & JARAK
@@ -65,6 +66,16 @@ local MAX_DISTANCE = 10000
 for _, customName in ipairs(getgenv().UniSc_CustomTargets) do
     table.insert(BossNames, customName)
     table.insert(EnemyNames, customName)
+end
+
+-- ARRAY PRIOR (KILL PRIORITY): nama + damage yang diberikan 1 kali per target
+local PriorList = {
+    { name = "maniac", damage = 13990 },
+    { name = "the",    damage = 10990 },
+}
+
+for _, entry in ipairs(getgenv().UniSc_CustomPrior) do
+    table.insert(PriorList, { name = entry.name, damage = entry.damage })
 end
 -- ==========================================
 
@@ -141,7 +152,7 @@ end
 
 local AutoKillBossEnabled = false
 local AutoKillEnemyEnabled = false
-local AutoPrecisionKillEnabled = false -- VARIABEL BARU UNTUK PRECISION KILL
+local AutoKillPriorityEnabled = false
 local AutoOpsEnabled = false
 local AutoReadyRaidEnabled = false 
 local AutoRaidEnabled = false
@@ -202,7 +213,7 @@ local TitleText = Instance.new("TextLabel")
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.Position = UDim2.new(0, 18, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "Over Cyber psycho v5.5"
+TitleText.Text = "Over Cyber psycho v5"
 TitleText.TextColor3 = Themes[CurrentTheme].Accent
 TitleText.Font = Enum.Font.Code
 TitleText.TextSize = 13
@@ -309,17 +320,17 @@ ToggleEnemyBtn.Font = Enum.Font.Code
 ToggleEnemyBtn.TextSize = 11
 ToggleEnemyBtn.Parent = KillContent
 
--- TOMBOL PRECISION KILL (BARU)
-local TogglePrecisionBtn = Instance.new("TextButton")
-TogglePrecisionBtn.Size = UDim2.new(1, 0, 0, 30)
-TogglePrecisionBtn.Position = UDim2.new(0, 0, 0, 90)
-TogglePrecisionBtn.BackgroundColor3 = Themes[CurrentTheme].Accent
-TogglePrecisionBtn.BorderSizePixel = 0
-TogglePrecisionBtn.Text = "PRECISION KILL : OFF"
-TogglePrecisionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TogglePrecisionBtn.Font = Enum.Font.Code
-TogglePrecisionBtn.TextSize = 11
-TogglePrecisionBtn.Parent = KillContent
+-- TOMBOL KILL PRIORITY
+local TogglePriorityBtn = Instance.new("TextButton")
+TogglePriorityBtn.Size = UDim2.new(1, 0, 0, 30)
+TogglePriorityBtn.Position = UDim2.new(0, 0, 0, 90)
+TogglePriorityBtn.BackgroundColor3 = Themes[CurrentTheme].Accent
+TogglePriorityBtn.BorderSizePixel = 0
+TogglePriorityBtn.Text = "KILL PRIORITY : OFF"
+TogglePriorityBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TogglePriorityBtn.Font = Enum.Font.Code
+TogglePriorityBtn.TextSize = 11
+TogglePriorityBtn.Parent = KillContent
 
 -- ============ TAB 2: AUTO ============
 local AutoContent = tabContents[2]
@@ -368,6 +379,7 @@ ToggleReadyRaidBtn.Font = Enum.Font.Code
 ToggleReadyRaidBtn.TextSize = 11
 ToggleReadyRaidBtn.Parent = AutoContent
 
+-- TOMBOL AUTO OPS CHIP FARM
 local ToggleChipFarmBtn = Instance.new("TextButton")
 ToggleChipFarmBtn.Size = UDim2.new(1, 0, 0, 30)
 ToggleChipFarmBtn.Position = UDim2.new(0, 0, 0, 140)
@@ -417,16 +429,53 @@ AddBtn.Font = Enum.Font.Code
 AddBtn.TextSize = 12
 AddBtn.Parent = ConfigContent
 
+-- ANTI-AFK
 local ToggleAntiAFKBtn = Instance.new("TextButton")
 ToggleAntiAFKBtn.Size = UDim2.new(1, 0, 0, 30)
 ToggleAntiAFKBtn.Position = UDim2.new(0, 0, 0, 55)
-ToggleAntiAFKBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+ToggleAntiAFKBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- default ON
 ToggleAntiAFKBtn.BorderSizePixel = 0
 ToggleAntiAFKBtn.Text = "ANTI-AFK : ON"
 ToggleAntiAFKBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleAntiAFKBtn.Font = Enum.Font.Code
 ToggleAntiAFKBtn.TextSize = 11
 ToggleAntiAFKBtn.Parent = ConfigContent
+
+-- KOLOM INPUT ARRAY PRIOR (format: nama:damage)
+local PriorInputLabel = Instance.new("TextLabel")
+PriorInputLabel.Size = UDim2.new(1, 0, 0, 15)
+PriorInputLabel.Position = UDim2.new(0, 0, 0, 95)
+PriorInputLabel.BackgroundTransparency = 1
+PriorInputLabel.Text = "ADD PRIOR TARGET (nama:damage):"
+PriorInputLabel.TextColor3 = Themes[CurrentTheme].SubText
+PriorInputLabel.Font = Enum.Font.Code
+PriorInputLabel.TextSize = 10
+PriorInputLabel.TextXAlignment = Enum.TextXAlignment.Left
+PriorInputLabel.Parent = ConfigContent
+
+local PriorInput = Instance.new("TextBox")
+PriorInput.Size = UDim2.new(0.65, 0, 0, 25)
+PriorInput.Position = UDim2.new(0, 0, 0, 115)
+PriorInput.BackgroundColor3 = Themes[CurrentTheme].Input
+PriorInput.BorderSizePixel = 1
+PriorInput.BorderColor3 = Color3.fromRGB(50, 60, 75)
+PriorInput.PlaceholderText = "nama:damage"
+PriorInput.Text = ""
+PriorInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+PriorInput.Font = Enum.Font.Code
+PriorInput.TextSize = 11
+PriorInput.Parent = ConfigContent
+
+local AddPriorBtn = Instance.new("TextButton")
+AddPriorBtn.Size = UDim2.new(0.3, 0, 0, 25)
+AddPriorBtn.Position = UDim2.new(0.7, 0, 0, 115)
+AddPriorBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 250)
+AddPriorBtn.BorderSizePixel = 0
+AddPriorBtn.Text = "ADD"
+AddPriorBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AddPriorBtn.Font = Enum.Font.Code
+AddPriorBtn.TextSize = 12
+AddPriorBtn.Parent = ConfigContent
 
 -- ============ TAB 4: SETTINGS ============
 local SettingsContent = tabContents[4]
@@ -534,10 +583,12 @@ regOpacity(TabBar)
 regOpacity(InfoText)
 regOpacity(TargetInput)
 regOpacity(AddBtn)
+regOpacity(PriorInput)
+regOpacity(AddPriorBtn)
 for _, btn in ipairs(tabButtons) do regOpacity(btn) end
 regOpacity(ToggleBossBtn)
 regOpacity(ToggleEnemyBtn)
-regOpacity(TogglePrecisionBtn) -- REGISTER OPACITY UNTUK TOMBOL BARU
+regOpacity(TogglePriorityBtn)
 regOpacity(ToggleOpsBtn)
 regOpacity(ToggleRaidBtn)
 regOpacity(ToggleChestBtn)
@@ -574,6 +625,8 @@ local function applyTheme(themeKey)
     RangeInfo.TextColor3 = theme.AccentLight
     InputLabel.TextColor3 = theme.SubText
     TargetInput.BackgroundColor3 = theme.Input
+    PriorInputLabel.TextColor3 = theme.SubText
+    PriorInput.BackgroundColor3 = theme.Input
     MinIcon.TextColor3 = theme.Accent
     OpacityTrack.BackgroundColor3 = theme.Input
     OpacityFill.BackgroundColor3 = theme.Accent
@@ -607,8 +660,8 @@ function refreshAllToggleButtons()
     ToggleEnemyBtn.BackgroundColor3 = AutoKillEnemyEnabled and green or accent
     ToggleEnemyBtn.Text = "INSTANT KILL NPC : " .. (AutoKillEnemyEnabled and "ON" or "OFF")
 
-    TogglePrecisionBtn.BackgroundColor3 = AutoPrecisionKillEnabled and green or accent
-    TogglePrecisionBtn.Text = "PRECISION KILL : " .. (AutoPrecisionKillEnabled and "ON" or "OFF")
+    TogglePriorityBtn.BackgroundColor3 = AutoKillPriorityEnabled and green or accent
+    TogglePriorityBtn.Text = "KILL PRIORITY : " .. (AutoKillPriorityEnabled and "ON" or "OFF")
 
     ToggleOpsBtn.BackgroundColor3 = AutoOpsEnabled and green or accent
     ToggleOpsBtn.Text = "AUTO START OPS : " .. (AutoOpsEnabled and "ON" or "OFF")
@@ -726,9 +779,8 @@ ToggleEnemyBtn.MouseButton1Click:Connect(function()
     refreshAllToggleButtons()
 end)
 
--- CLICK HANDLER PRECISION KILL
-TogglePrecisionBtn.MouseButton1Click:Connect(function()
-    AutoPrecisionKillEnabled = not AutoPrecisionKillEnabled
+TogglePriorityBtn.MouseButton1Click:Connect(function()
+    AutoKillPriorityEnabled = not AutoKillPriorityEnabled
     refreshAllToggleButtons()
 end)
 
@@ -773,6 +825,47 @@ AddBtn.MouseButton1Click:Connect(function()
     else
         InfoText.Text = "STATUS: INPUT EMPTY"
     end
+end)
+
+-- TAMBAH ARRAY PRIOR (format nama:damage, tidak masuk ke array Boss/NPC)
+AddPriorBtn.MouseButton1Click:Connect(function()
+    local raw = string.lower(PriorInput.Text)
+    local name, dmgText = raw:match("^%s*(.-)%s*:%s*(%d+)%s*$")
+    local dmg = dmgText and tonumber(dmgText)
+
+    if not name or name == "" or not dmg or dmg <= 0 then
+        InfoText.Text = "STATUS: FORMAT SALAH\nGUNAKAN nama:damage\nCONTOH: maniac:13990"
+        return
+    end
+
+    -- Nama yang sudah ada di array Prior diperbarui damage-nya
+    local updated = false
+    for _, entry in ipairs(PriorList) do
+        if entry.name == name then
+            entry.damage = dmg
+            updated = true
+            break
+        end
+    end
+    if not updated then
+        table.insert(PriorList, { name = name, damage = dmg })
+    end
+
+    -- Simpan nama + damage ke data persisten
+    local savedUpdated = false
+    for _, entry in ipairs(getgenv().UniSc_CustomPrior) do
+        if entry.name == name then
+            entry.damage = dmg
+            savedUpdated = true
+            break
+        end
+    end
+    if not savedUpdated then
+        table.insert(getgenv().UniSc_CustomPrior, { name = name, damage = dmg })
+    end
+
+    InfoText.Text = "STATUS: " .. (updated and "UPDATED" or "ADDED") .. " PRIOR\nNAME: " .. name .. "\nDAMAGE: " .. dmg
+    PriorInput.Text = ""
 end)
 
 -- ==========================================
@@ -905,7 +998,7 @@ task.spawn(function()
                             local args = {
                                 [1] = "create",
                                 [2] = {
-                                    ["location"] = "SlumsYard", 
+                                    ["location"] = "SlumsYard", -- LOKASI DIGANTI
                                     ["conditions"] = {
                                         [1] = "GlassBody",
                                         [2] = "NoImplants"
@@ -969,7 +1062,7 @@ task.spawn(function()
                             local args = {
                                 [1] = "create",
                                 [2] = {
-                                    ["location"] = "SlumsYard",
+                                    ["location"] = "SlumsYard", -- LOKASI DIGANTI
                                     ["conditions"] = {
                                         [1] = "GlassBody"
                                     },
@@ -1073,19 +1166,20 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- LOGIKA INSTANT KILL & PRECISION KILL (OPTIMIZED + JITTER)
+-- LOGIKA INSTANT KILL + KILL PRIORITY (OPTIMIZED + JITTER)
 -- ==========================================
 task.spawn(function()
     local SCAN_INTERVAL = jit(0.22)
     local cachedChar = nil
     local cachedRoot = nil
     local lastStatus = ""
+    -- Target yang sudah menerima damage Prior (1 kali per target)
+    local priorHit = setmetatable({}, {__mode = "k"})
 
     while isAlive and ScreenGui and ScreenGui.Parent do
         task.wait(SCAN_INTERVAL + math.random() * 0.06)
 
-        -- Cek apakah setidaknya ada 1 fitur kill yang aktif
-        if not (AutoKillBossEnabled or AutoKillEnemyEnabled or AutoPrecisionKillEnabled) then
+        if not (AutoKillBossEnabled or AutoKillEnemyEnabled or AutoKillPriorityEnabled) then
             cachedChar = nil
             cachedRoot = nil
             task.wait(jit(0.5))
@@ -1106,31 +1200,58 @@ task.spawn(function()
                     if not hum or hum.Health <= 0 then return false end
 
                     local nameLower = string.lower(obj.Name)
-                    local isBossMatch = false
-                    local isEnemyMatch = false
-                    local targetType = ""
 
-                    -- Cek kecocokan Boss Array
-                    for _, bName in ipairs(BossNames) do
-                        if string.find(nameLower, bName, 1, true) then
-                            isBossMatch = true
-                            targetType = "BOSS"
-                            break
+                    -- ==========================================
+                    -- KILL PRIORITY: damage sesuai array Prior, 1 kali per target
+                    -- ==========================================
+                    if AutoKillPriorityEnabled and not priorHit[hum] then
+                        local priorEntry = nil
+                        for _, entry in ipairs(PriorList) do
+                            if string.find(nameLower, entry.name, 1, true) then
+                                priorEntry = entry
+                                break
+                            end
+                        end
+
+                        if priorEntry then
+                            local priorRoot = obj:FindFirstChild("HumanoidRootPart")
+                                or obj.PrimaryPart
+                                or obj:FindFirstChild("Head")
+                            if priorRoot then
+                                local priorDistance = (priorRoot.Position - myPos).Magnitude
+                                if priorDistance <= MAX_DISTANCE then
+                                    priorHit[hum] = true
+                                    pcall(function() hum:TakeDamage(priorEntry.damage) end)
+                                    pcall(function()
+                                        local tool = cachedChar:FindFirstChildOfClass("Tool")
+                                        if tool then tool:Activate() end
+                                    end)
+                                    InfoText.Text = "STATUS: PRIORITY HIT\nTARGET: " .. obj.Name .. "\nDAMAGE: " .. priorEntry.damage .. " (" .. priorEntry.name .. ")"
+                                    return true
+                                end
+                            end
                         end
                     end
-                    
-                    -- Cek kecocokan Enemy Array
-                    if not isBossMatch then
+
+                    local targetType = nil
+
+                    if AutoKillBossEnabled then
+                        for _, bName in ipairs(BossNames) do
+                            if string.find(nameLower, bName, 1, true) then
+                                targetType = "BOSS"
+                                break
+                            end
+                        end
+                    end
+                    if not targetType and AutoKillEnemyEnabled then
                         for _, eName in ipairs(EnemyNames) do
                             if string.find(nameLower, eName, 1, true) then
-                                isEnemyMatch = true
                                 targetType = "NPC"
                                 break
                             end
                         end
                     end
-
-                    if not isBossMatch and not isEnemyMatch then return false end
+                    if not targetType then return false end
 
                     local targetRoot = obj:FindFirstChild("HumanoidRootPart")
                         or obj.PrimaryPart
@@ -1140,43 +1261,15 @@ task.spawn(function()
                     local distance = (targetRoot.Position - myPos).Magnitude
                     if distance > MAX_DISTANCE then return false end
 
-                    -- ==========================================
-                    -- PRIORITAS 1: INSTANT KILL (Damage 9999+)
-                    -- ==========================================
-                    local doInstant = (isBossMatch and AutoKillBossEnabled) or (isEnemyMatch and AutoKillEnemyEnabled)
-                    
-                    if doInstant then
-                        pcall(function() hum.Health = 0 end)
-                        pcall(function() hum:TakeDamage(999999999) end)
-                        pcall(function()
-                            local tool = cachedChar:FindFirstChildOfClass("Tool")
-                            if tool then tool:Activate() end
-                        end)
-                        InfoText.Text = "STATUS: KILLED " .. targetType .. "\nTARGET: " .. obj.Name .. "\nDIST: " .. math.floor(distance) .. " STUDS"
-                        return true
-                    end
+                    pcall(function() hum.Health = 0 end)
+                    pcall(function() hum:TakeDamage(999999999) end)
+                    pcall(function()
+                        local tool = cachedChar:FindFirstChildOfClass("Tool")
+                        if tool then tool:Activate() end
+                    end)
 
-                    -- ==========================================
-                    -- PRIORITAS 2: PRECISION KILL (Sisa 10 HP)
-                    -- ==========================================
-                    if AutoPrecisionKillEnabled then
-                        local currentHealth = hum.Health
-                        local TARGET_LEFTOVER_HP = 10
-                        
-                        if currentHealth > TARGET_LEFTOVER_HP then
-                            local damageToDeal = currentHealth - TARGET_LEFTOVER_HP
-                            pcall(function() hum.Health = TARGET_LEFTOVER_HP end)
-                            pcall(function() hum:TakeDamage(damageToDeal) end)
-                            pcall(function()
-                                local tool = cachedChar:FindFirstChildOfClass("Tool")
-                                if tool then tool:Activate() end
-                            end)
-                            InfoText.Text = "STATUS: PRECISION HIT " .. targetType .. "\nTARGET: " .. obj.Name .. "\nHP LEFT: 10"
-                            return true
-                        end
-                    end
-
-                    return false
+                    InfoText.Text = "STATUS: KILLED " .. targetType .. "\nTARGET: " .. obj.Name .. "\nDIST: " .. math.floor(distance) .. " STUDS"
+                    return true
                 end
 
                 for _, obj in ipairs(Workspace:GetChildren()) do
@@ -1237,7 +1330,6 @@ end)
 pcall(function()
     queue_on_teleport(script_source)
 end)
-
 -- EKSEKUSI UTAMA
 local func, err = loadstring(script_source)
 if func then
